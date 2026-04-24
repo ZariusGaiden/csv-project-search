@@ -404,6 +404,125 @@
             display: block;
         }
 
+        /* Pagination Section */
+        .pagination-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-page {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-page:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-page:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .page-info {
+            font-size: 0.95em;
+            color: #555;
+            font-weight: 600;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .page-size-selector label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .page-size-selector select {
+            padding: 6px 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .page-size-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Responsive Pagination */
+        @media (max-width: 768px) {
+            .pagination-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .page-info {
+                order: -1;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .btn-page {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            .page-size-selector {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .pagination-controls {
+                gap: 8px;
+            }
+
+            .btn-page {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+
+            .page-info {
+                font-size: 0.85em;
+                padding: 6px 12px;
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .header h1 {
@@ -541,6 +660,33 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-section" id="paginationSection" style="display: none;">
+                    <div class="pagination-controls">
+                        <button id="firstPageBtn" class="btn btn-page" disabled>⏮️ First</button>
+                        <button id="prevPageBtn" class="btn btn-page" disabled>◀️ Previous</button>
+
+                        <div class="page-info">
+                            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                            (<span id="pageSize">50</span> rows per page)
+                        </div>
+
+                        <button id="nextPageBtn" class="btn btn-page" disabled>▶️ Next</button>
+                        <button id="lastPageBtn" class="btn btn-page" disabled>⏭️ Last</button>
+                    </div>
+
+                    <div class="page-size-selector">
+                        <label for="pageSizeSelect">Rows per page:</label>
+                        <select id="pageSizeSelect">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -558,7 +704,10 @@
             filters: {},
             searchTerm: '',
             filteredData: [],
-            visibleColumns: new Set() // Track which columns are visible
+            visibleColumns: new Set(), // Track which columns are visible
+            currentPage: 1,
+            pageSize: 50,
+            totalPages: 0
         };
 
         // ================================================================
@@ -576,6 +725,17 @@
         const tableBody = document.getElementById('tableBody');
         const resultCount = document.getElementById('resultCount');
         const totalCount = document.getElementById('totalCount');
+
+        // Pagination elements
+        const paginationSection = document.getElementById('paginationSection');
+        const firstPageBtn = document.getElementById('firstPageBtn');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const lastPageBtn = document.getElementById('lastPageBtn');
+        const currentPageSpan = document.getElementById('currentPage');
+        const totalPagesSpan = document.getElementById('totalPages');
+        const pageSizeSpan = document.getElementById('pageSize');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
 
         // ================================================================
         // UTILITY FUNCTIONS
@@ -724,6 +884,8 @@
                     state.filters = {};
                     state.searchTerm = '';
                     state.visibleColumns = new Set(state.headers); // All columns visible by default
+                    state.currentPage = 1; // Reset pagination
+                    state.totalPages = Math.ceil(state.csvData.length / state.pageSize);
 
                     // Update UI
                     fileInfoSpan.textContent = `✓ ${file.name} (${state.csvData.length} rows)`;
@@ -882,6 +1044,8 @@
         function resetFilters() {
             state.filters = {};
             state.searchTerm = '';
+            state.currentPage = 1; // Reset to first page
+            state.totalPages = Math.ceil(state.csvData.length / state.pageSize);
             searchInput.value = '';
 
             // Reset filter dropdowns
@@ -925,6 +1089,12 @@
             }
 
             state.filteredData = filtered;
+            state.totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+
+            // Reset to first page if current page is beyond available pages
+            if (state.currentPage > state.totalPages && state.totalPages > 0) {
+                state.currentPage = 1;
+            }
         }
 
         /**
@@ -973,7 +1143,12 @@
 
             const visibleHeaders = state.headers.filter(header => state.visibleColumns.has(header));
 
-            state.filteredData.forEach(rowData => {
+            // Calculate pagination indices
+            const startIndex = (state.currentPage - 1) * state.pageSize;
+            const endIndex = Math.min(startIndex + state.pageSize, state.filteredData.length);
+            const pageData = state.filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach(rowData => {
                 const tr = document.createElement('tr');
                 visibleHeaders.forEach(header => {
                     const td = document.createElement('td');
@@ -990,6 +1165,24 @@
         function updateCounts() {
             resultCount.textContent = state.filteredData.length;
             totalCount.textContent = state.csvData.length;
+
+            // Update pagination info
+            currentPageSpan.textContent = state.currentPage;
+            totalPagesSpan.textContent = state.totalPages || 1;
+            pageSizeSpan.textContent = state.pageSize;
+
+            // Show/hide pagination based on whether there are multiple pages
+            if (state.totalPages > 1) {
+                paginationSection.style.display = 'block';
+            } else {
+                paginationSection.style.display = 'none';
+            }
+
+            // Update button states
+            firstPageBtn.disabled = state.currentPage <= 1;
+            prevPageBtn.disabled = state.currentPage <= 1;
+            nextPageBtn.disabled = state.currentPage >= state.totalPages;
+            lastPageBtn.disabled = state.currentPage >= state.totalPages;
         }
 
         /**
@@ -1013,10 +1206,16 @@
             searchInput.disabled = !enabled;
             resetBtn.disabled = !enabled;
             toggleAllBtn.disabled = !enabled;
+            pageSizeSelect.disabled = !enabled;
 
             document.querySelectorAll('[data-header]').forEach(element => {
                 element.disabled = !enabled;
             });
+
+            // Hide pagination when no data
+            if (!enabled) {
+                paginationSection.style.display = 'none';
+            }
 
             if (enabled) {
                 noFiltersMsg.style.display = 'none';
@@ -1030,6 +1229,37 @@
         searchInput.addEventListener('input', handleSearch);
         resetBtn.addEventListener('click', resetFilters);
         toggleAllBtn.addEventListener('click', toggleAllColumns);
+
+        // Pagination event listeners
+        firstPageBtn.addEventListener('click', () => goToPage(1));
+        prevPageBtn.addEventListener('click', () => goToPage(state.currentPage - 1));
+        nextPageBtn.addEventListener('click', () => goToPage(state.currentPage + 1));
+        lastPageBtn.addEventListener('click', () => goToPage(state.totalPages));
+        pageSizeSelect.addEventListener('change', handlePageSizeChange);
+
+        // ================================================================
+        // PAGINATION FUNCTIONS
+        // ================================================================
+
+        /**
+         * Navigate to a specific page
+         */
+        function goToPage(page) {
+            if (page >= 1 && page <= state.totalPages) {
+                state.currentPage = page;
+                renderResults();
+            }
+        }
+
+        /**
+         * Handle page size change
+         */
+        function handlePageSizeChange(event) {
+            state.pageSize = parseInt(event.target.value);
+            state.currentPage = 1; // Reset to first page
+            state.totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+            renderResults();
+        }
 
         // Initialize
         enableControls(false);
