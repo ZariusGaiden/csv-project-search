@@ -155,7 +155,7 @@
 
         .filters-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -163,15 +163,37 @@
         .filter-group {
             display: flex;
             flex-direction: column;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafbfc;
         }
 
-        .filter-group label {
+        .filter-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .filter-header label {
             font-size: 0.9em;
             font-weight: 600;
             color: #555;
-            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .column-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .column-toggle input[type="checkbox"] {
+            margin: 0;
         }
 
         .filter-group select {
@@ -203,6 +225,8 @@
         .filter-actions {
             display: flex;
             gap: 10px;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .btn {
@@ -229,6 +253,16 @@
             background: #ccc;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn-toggle-all {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-toggle-all:hover {
+            background: #218838;
+            transform: translateY(-2px);
         }
 
         /* Search Section */
@@ -370,6 +404,125 @@
             display: block;
         }
 
+        /* Pagination Section */
+        .pagination-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-page {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-page:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-page:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .page-info {
+            font-size: 0.95em;
+            color: #555;
+            font-weight: 600;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .page-size-selector label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .page-size-selector select {
+            padding: 6px 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .page-size-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Responsive Pagination */
+        @media (max-width: 768px) {
+            .pagination-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .page-info {
+                order: -1;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .btn-page {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            .page-size-selector {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .pagination-controls {
+                gap: 8px;
+            }
+
+            .btn-page {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+
+            .page-info {
+                font-size: 0.85em;
+                padding: 6px 12px;
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .header h1 {
@@ -445,9 +598,9 @@
                 <label for="csvFile" class="upload-label">
                     📤 Choose CSV File
                 </label>
-                <input 
-                    type="file" 
-                    id="csvFile" 
+                <input
+                    type="file"
+                    id="csvFile"
                     accept=".csv"
                 >
                 <div class="file-info">
@@ -460,12 +613,13 @@
 
             <!-- Filter Section -->
             <div class="filter-section">
-                <h2>Filters</h2>
+                <h2>Filters & Columns</h2>
                 <div class="filters-container" id="filtersContainer">
                     <p id="noFiltersMsg" style="color: #999;">Upload a CSV file to see filter options</p>
                 </div>
                 <div class="filter-actions">
                     <button id="resetBtn" class="btn btn-reset" disabled>🔄 Reset Filters</button>
+                    <button id="toggleAllBtn" class="btn btn-toggle-all" disabled>👁️ Toggle All Columns</button>
                 </div>
             </div>
 
@@ -473,9 +627,9 @@
             <div class="search-section">
                 <h2>Search</h2>
                 <div class="search-box">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
+                    <input
+                        type="text"
+                        id="searchInput"
                         placeholder="Search all columns..."
                         disabled
                     >
@@ -506,6 +660,33 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-section" id="paginationSection" style="display: none;">
+                    <div class="pagination-controls">
+                        <button id="firstPageBtn" class="btn btn-page" disabled>⏮️ First</button>
+                        <button id="prevPageBtn" class="btn btn-page" disabled>◀️ Previous</button>
+
+                        <div class="page-info">
+                            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                            (<span id="pageSize">50</span> rows per page)
+                        </div>
+
+                        <button id="nextPageBtn" class="btn btn-page" disabled>▶️ Next</button>
+                        <button id="lastPageBtn" class="btn btn-page" disabled>⏭️ Last</button>
+                    </div>
+
+                    <div class="page-size-selector">
+                        <label for="pageSizeSelect">Rows per page:</label>
+                        <select id="pageSizeSelect">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -522,7 +703,11 @@
             headers: [],
             filters: {},
             searchTerm: '',
-            filteredData: []
+            filteredData: [],
+            visibleColumns: new Set(), // Track which columns are visible
+            currentPage: 1,
+            pageSize: 50,
+            totalPages: 0
         };
 
         // ================================================================
@@ -535,10 +720,22 @@
         const noFiltersMsg = document.getElementById('noFiltersMsg');
         const searchInput = document.getElementById('searchInput');
         const resetBtn = document.getElementById('resetBtn');
+        const toggleAllBtn = document.getElementById('toggleAllBtn');
         const tableHeader = document.getElementById('tableHeader');
         const tableBody = document.getElementById('tableBody');
         const resultCount = document.getElementById('resultCount');
         const totalCount = document.getElementById('totalCount');
+
+        // Pagination elements
+        const paginationSection = document.getElementById('paginationSection');
+        const firstPageBtn = document.getElementById('firstPageBtn');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const lastPageBtn = document.getElementById('lastPageBtn');
+        const currentPageSpan = document.getElementById('currentPage');
+        const totalPagesSpan = document.getElementById('totalPages');
+        const pageSizeSpan = document.getElementById('pageSize');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
 
         // ================================================================
         // UTILITY FUNCTIONS
@@ -686,6 +883,9 @@
                     state.csvData = rowsToObjects(rows);
                     state.filters = {};
                     state.searchTerm = '';
+                    state.visibleColumns = new Set(state.headers); // All columns visible by default
+                    state.currentPage = 1; // Reset pagination
+                    state.totalPages = Math.ceil(state.csvData.length / state.pageSize);
 
                     // Update UI
                     fileInfoSpan.textContent = `✓ ${file.name} (${state.csvData.length} rows)`;
@@ -714,7 +914,7 @@
         // ================================================================
 
         /**
-         * Render filter dropdowns
+         * Render filter dropdowns and column visibility toggles
          */
         function renderFilters() {
             filtersContainer.innerHTML = '';
@@ -725,8 +925,31 @@
                 const filterGroup = document.createElement('div');
                 filterGroup.className = 'filter-group';
 
+                const filterHeader = document.createElement('div');
+                filterHeader.className = 'filter-header';
+
                 const label = document.createElement('label');
                 label.textContent = header;
+
+                const columnToggle = document.createElement('div');
+                columnToggle.className = 'column-toggle';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `toggle-${header}`;
+                checkbox.dataset.header = header;
+                checkbox.checked = state.visibleColumns.has(header);
+                checkbox.addEventListener('change', handleColumnToggle);
+
+                const toggleLabel = document.createElement('label');
+                toggleLabel.htmlFor = `toggle-${header}`;
+                toggleLabel.textContent = 'Show';
+
+                columnToggle.appendChild(checkbox);
+                columnToggle.appendChild(toggleLabel);
+
+                filterHeader.appendChild(label);
+                filterHeader.appendChild(columnToggle);
 
                 const select = document.createElement('select');
                 select.id = `filter-${header}`;
@@ -746,7 +969,7 @@
 
                 select.addEventListener('change', handleFilterChange);
 
-                filterGroup.appendChild(label);
+                filterGroup.appendChild(filterHeader);
                 filterGroup.appendChild(select);
                 filtersContainer.appendChild(filterGroup);
             });
@@ -769,17 +992,73 @@
         }
 
         /**
+         * Handle column visibility toggle
+         */
+        function handleColumnToggle(event) {
+            const header = event.target.dataset.header;
+            const isChecked = event.target.checked;
+
+            if (isChecked) {
+                state.visibleColumns.add(header);
+            } else {
+                state.visibleColumns.delete(header);
+                // Also remove any filter for this column
+                delete state.filters[header];
+                const select = document.getElementById(`filter-${header}`);
+                if (select) select.value = '';
+            }
+
+            renderResults();
+        }
+
+        /**
+         * Toggle all columns visibility
+         */
+        function toggleAllColumns() {
+            const allVisible = state.visibleColumns.size === state.headers.length;
+            const newVisibility = !allVisible;
+
+            if (newVisibility) {
+                state.visibleColumns = new Set(state.headers);
+            } else {
+                state.visibleColumns.clear();
+                state.filters = {}; // Clear all filters when hiding all columns
+            }
+
+            // Update checkboxes
+            state.headers.forEach(header => {
+                const checkbox = document.getElementById(`toggle-${header}`);
+                if (checkbox) {
+                    checkbox.checked = newVisibility;
+                }
+                const select = document.getElementById(`filter-${header}`);
+                if (select) select.value = '';
+            });
+
+            renderResults();
+        }
+
+        /**
          * Reset all filters
          */
         function resetFilters() {
             state.filters = {};
             state.searchTerm = '';
+            state.currentPage = 1; // Reset to first page
+            state.totalPages = Math.ceil(state.csvData.length / state.pageSize);
             searchInput.value = '';
 
             // Reset filter dropdowns
             document.querySelectorAll('[data-header]').forEach(select => {
-                select.value = '';
+                if (select.type === 'checkbox') {
+                    select.checked = true;
+                } else {
+                    select.value = '';
+                }
             });
+
+            // Reset column visibility
+            state.visibleColumns = new Set(state.headers);
 
             renderResults();
         }
@@ -799,7 +1078,7 @@
                 filtered = filtered.filter(row => row[header] === filterValue);
             });
 
-            // Apply search term (checks all columns)
+            // Apply search term (checks all columns, even hidden ones)
             if (state.searchTerm.trim() !== '') {
                 const searchLower = state.searchTerm.toLowerCase();
                 filtered = filtered.filter(row => {
@@ -810,6 +1089,12 @@
             }
 
             state.filteredData = filtered;
+            state.totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+
+            // Reset to first page if current page is beyond available pages
+            if (state.currentPage > state.totalPages && state.totalPages > 0) {
+                state.currentPage = 1;
+            }
         }
 
         /**
@@ -825,11 +1110,13 @@
         // ================================================================
 
         /**
-         * Render table headers
+         * Render table headers (only visible columns)
          */
         function renderTableHeaders() {
             tableHeader.innerHTML = '';
-            state.headers.forEach(header => {
+            const visibleHeaders = state.headers.filter(header => state.visibleColumns.has(header));
+
+            visibleHeaders.forEach(header => {
                 const th = document.createElement('th');
                 th.textContent = header;
                 tableHeader.appendChild(th);
@@ -837,15 +1124,16 @@
         }
 
         /**
-         * Render table rows
+         * Render table rows (only visible columns)
          */
         function renderTableRows() {
             tableBody.innerHTML = '';
 
             if (state.filteredData.length === 0) {
+                const visibleCount = state.visibleColumns.size;
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = state.headers.length;
+                td.colSpan = visibleCount || 1;
                 td.className = 'empty-state';
                 td.innerHTML = '<span class="emoji">🔍</span><p>No results found</p>';
                 tr.appendChild(td);
@@ -853,9 +1141,16 @@
                 return;
             }
 
-            state.filteredData.forEach(rowData => {
+            const visibleHeaders = state.headers.filter(header => state.visibleColumns.has(header));
+
+            // Calculate pagination indices
+            const startIndex = (state.currentPage - 1) * state.pageSize;
+            const endIndex = Math.min(startIndex + state.pageSize, state.filteredData.length);
+            const pageData = state.filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach(rowData => {
                 const tr = document.createElement('tr');
-                state.headers.forEach(header => {
+                visibleHeaders.forEach(header => {
                     const td = document.createElement('td');
                     td.textContent = rowData[header] || '';
                     tr.appendChild(td);
@@ -870,6 +1165,24 @@
         function updateCounts() {
             resultCount.textContent = state.filteredData.length;
             totalCount.textContent = state.csvData.length;
+
+            // Update pagination info
+            currentPageSpan.textContent = state.currentPage;
+            totalPagesSpan.textContent = state.totalPages || 1;
+            pageSizeSpan.textContent = state.pageSize;
+
+            // Show/hide pagination based on whether there are multiple pages
+            if (state.totalPages > 1) {
+                paginationSection.style.display = 'block';
+            } else {
+                paginationSection.style.display = 'none';
+            }
+
+            // Update button states
+            firstPageBtn.disabled = state.currentPage <= 1;
+            prevPageBtn.disabled = state.currentPage <= 1;
+            nextPageBtn.disabled = state.currentPage >= state.totalPages;
+            lastPageBtn.disabled = state.currentPage >= state.totalPages;
         }
 
         /**
@@ -892,10 +1205,17 @@
         function enableControls(enabled) {
             searchInput.disabled = !enabled;
             resetBtn.disabled = !enabled;
+            toggleAllBtn.disabled = !enabled;
+            pageSizeSelect.disabled = !enabled;
 
-            document.querySelectorAll('[data-header]').forEach(select => {
-                select.disabled = !enabled;
+            document.querySelectorAll('[data-header]').forEach(element => {
+                element.disabled = !enabled;
             });
+
+            // Hide pagination when no data
+            if (!enabled) {
+                paginationSection.style.display = 'none';
+            }
 
             if (enabled) {
                 noFiltersMsg.style.display = 'none';
@@ -908,6 +1228,38 @@
         csvFileInput.addEventListener('change', handleCSVUpload);
         searchInput.addEventListener('input', handleSearch);
         resetBtn.addEventListener('click', resetFilters);
+        toggleAllBtn.addEventListener('click', toggleAllColumns);
+
+        // Pagination event listeners
+        firstPageBtn.addEventListener('click', () => goToPage(1));
+        prevPageBtn.addEventListener('click', () => goToPage(state.currentPage - 1));
+        nextPageBtn.addEventListener('click', () => goToPage(state.currentPage + 1));
+        lastPageBtn.addEventListener('click', () => goToPage(state.totalPages));
+        pageSizeSelect.addEventListener('change', handlePageSizeChange);
+
+        // ================================================================
+        // PAGINATION FUNCTIONS
+        // ================================================================
+
+        /**
+         * Navigate to a specific page
+         */
+        function goToPage(page) {
+            if (page >= 1 && page <= state.totalPages) {
+                state.currentPage = page;
+                renderResults();
+            }
+        }
+
+        /**
+         * Handle page size change
+         */
+        function handlePageSizeChange(event) {
+            state.pageSize = parseInt(event.target.value);
+            state.currentPage = 1; // Reset to first page
+            state.totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+            renderResults();
+        }
 
         // Initialize
         enableControls(false);
