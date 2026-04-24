@@ -155,7 +155,7 @@
 
         .filters-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -163,15 +163,37 @@
         .filter-group {
             display: flex;
             flex-direction: column;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafbfc;
         }
 
-        .filter-group label {
+        .filter-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .filter-header label {
             font-size: 0.9em;
             font-weight: 600;
             color: #555;
-            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .column-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .column-toggle input[type="checkbox"] {
+            margin: 0;
         }
 
         .filter-group select {
@@ -203,6 +225,8 @@
         .filter-actions {
             display: flex;
             gap: 10px;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .btn {
@@ -229,6 +253,16 @@
             background: #ccc;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn-toggle-all {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-toggle-all:hover {
+            background: #218838;
+            transform: translateY(-2px);
         }
 
         /* Search Section */
@@ -445,9 +479,9 @@
                 <label for="csvFile" class="upload-label">
                     📤 Choose CSV File
                 </label>
-                <input 
-                    type="file" 
-                    id="csvFile" 
+                <input
+                    type="file"
+                    id="csvFile"
                     accept=".csv"
                 >
                 <div class="file-info">
@@ -460,12 +494,13 @@
 
             <!-- Filter Section -->
             <div class="filter-section">
-                <h2>Filters</h2>
+                <h2>Filters & Columns</h2>
                 <div class="filters-container" id="filtersContainer">
                     <p id="noFiltersMsg" style="color: #999;">Upload a CSV file to see filter options</p>
                 </div>
                 <div class="filter-actions">
                     <button id="resetBtn" class="btn btn-reset" disabled>🔄 Reset Filters</button>
+                    <button id="toggleAllBtn" class="btn btn-toggle-all" disabled>👁️ Toggle All Columns</button>
                 </div>
             </div>
 
@@ -473,9 +508,9 @@
             <div class="search-section">
                 <h2>Search</h2>
                 <div class="search-box">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
+                    <input
+                        type="text"
+                        id="searchInput"
                         placeholder="Search all columns..."
                         disabled
                     >
@@ -522,7 +557,8 @@
             headers: [],
             filters: {},
             searchTerm: '',
-            filteredData: []
+            filteredData: [],
+            visibleColumns: new Set() // Track which columns are visible
         };
 
         // ================================================================
@@ -535,6 +571,7 @@
         const noFiltersMsg = document.getElementById('noFiltersMsg');
         const searchInput = document.getElementById('searchInput');
         const resetBtn = document.getElementById('resetBtn');
+        const toggleAllBtn = document.getElementById('toggleAllBtn');
         const tableHeader = document.getElementById('tableHeader');
         const tableBody = document.getElementById('tableBody');
         const resultCount = document.getElementById('resultCount');
@@ -686,6 +723,7 @@
                     state.csvData = rowsToObjects(rows);
                     state.filters = {};
                     state.searchTerm = '';
+                    state.visibleColumns = new Set(state.headers); // All columns visible by default
 
                     // Update UI
                     fileInfoSpan.textContent = `✓ ${file.name} (${state.csvData.length} rows)`;
@@ -714,7 +752,7 @@
         // ================================================================
 
         /**
-         * Render filter dropdowns
+         * Render filter dropdowns and column visibility toggles
          */
         function renderFilters() {
             filtersContainer.innerHTML = '';
@@ -725,8 +763,31 @@
                 const filterGroup = document.createElement('div');
                 filterGroup.className = 'filter-group';
 
+                const filterHeader = document.createElement('div');
+                filterHeader.className = 'filter-header';
+
                 const label = document.createElement('label');
                 label.textContent = header;
+
+                const columnToggle = document.createElement('div');
+                columnToggle.className = 'column-toggle';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `toggle-${header}`;
+                checkbox.dataset.header = header;
+                checkbox.checked = state.visibleColumns.has(header);
+                checkbox.addEventListener('change', handleColumnToggle);
+
+                const toggleLabel = document.createElement('label');
+                toggleLabel.htmlFor = `toggle-${header}`;
+                toggleLabel.textContent = 'Show';
+
+                columnToggle.appendChild(checkbox);
+                columnToggle.appendChild(toggleLabel);
+
+                filterHeader.appendChild(label);
+                filterHeader.appendChild(columnToggle);
 
                 const select = document.createElement('select');
                 select.id = `filter-${header}`;
@@ -746,7 +807,7 @@
 
                 select.addEventListener('change', handleFilterChange);
 
-                filterGroup.appendChild(label);
+                filterGroup.appendChild(filterHeader);
                 filterGroup.appendChild(select);
                 filtersContainer.appendChild(filterGroup);
             });
@@ -769,6 +830,53 @@
         }
 
         /**
+         * Handle column visibility toggle
+         */
+        function handleColumnToggle(event) {
+            const header = event.target.dataset.header;
+            const isChecked = event.target.checked;
+
+            if (isChecked) {
+                state.visibleColumns.add(header);
+            } else {
+                state.visibleColumns.delete(header);
+                // Also remove any filter for this column
+                delete state.filters[header];
+                const select = document.getElementById(`filter-${header}`);
+                if (select) select.value = '';
+            }
+
+            renderResults();
+        }
+
+        /**
+         * Toggle all columns visibility
+         */
+        function toggleAllColumns() {
+            const allVisible = state.visibleColumns.size === state.headers.length;
+            const newVisibility = !allVisible;
+
+            if (newVisibility) {
+                state.visibleColumns = new Set(state.headers);
+            } else {
+                state.visibleColumns.clear();
+                state.filters = {}; // Clear all filters when hiding all columns
+            }
+
+            // Update checkboxes
+            state.headers.forEach(header => {
+                const checkbox = document.getElementById(`toggle-${header}`);
+                if (checkbox) {
+                    checkbox.checked = newVisibility;
+                }
+                const select = document.getElementById(`filter-${header}`);
+                if (select) select.value = '';
+            });
+
+            renderResults();
+        }
+
+        /**
          * Reset all filters
          */
         function resetFilters() {
@@ -778,8 +886,15 @@
 
             // Reset filter dropdowns
             document.querySelectorAll('[data-header]').forEach(select => {
-                select.value = '';
+                if (select.type === 'checkbox') {
+                    select.checked = true;
+                } else {
+                    select.value = '';
+                }
             });
+
+            // Reset column visibility
+            state.visibleColumns = new Set(state.headers);
 
             renderResults();
         }
@@ -799,7 +914,7 @@
                 filtered = filtered.filter(row => row[header] === filterValue);
             });
 
-            // Apply search term (checks all columns)
+            // Apply search term (checks all columns, even hidden ones)
             if (state.searchTerm.trim() !== '') {
                 const searchLower = state.searchTerm.toLowerCase();
                 filtered = filtered.filter(row => {
@@ -825,11 +940,13 @@
         // ================================================================
 
         /**
-         * Render table headers
+         * Render table headers (only visible columns)
          */
         function renderTableHeaders() {
             tableHeader.innerHTML = '';
-            state.headers.forEach(header => {
+            const visibleHeaders = state.headers.filter(header => state.visibleColumns.has(header));
+
+            visibleHeaders.forEach(header => {
                 const th = document.createElement('th');
                 th.textContent = header;
                 tableHeader.appendChild(th);
@@ -837,15 +954,16 @@
         }
 
         /**
-         * Render table rows
+         * Render table rows (only visible columns)
          */
         function renderTableRows() {
             tableBody.innerHTML = '';
 
             if (state.filteredData.length === 0) {
+                const visibleCount = state.visibleColumns.size;
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = state.headers.length;
+                td.colSpan = visibleCount || 1;
                 td.className = 'empty-state';
                 td.innerHTML = '<span class="emoji">🔍</span><p>No results found</p>';
                 tr.appendChild(td);
@@ -853,9 +971,11 @@
                 return;
             }
 
+            const visibleHeaders = state.headers.filter(header => state.visibleColumns.has(header));
+
             state.filteredData.forEach(rowData => {
                 const tr = document.createElement('tr');
-                state.headers.forEach(header => {
+                visibleHeaders.forEach(header => {
                     const td = document.createElement('td');
                     td.textContent = rowData[header] || '';
                     tr.appendChild(td);
@@ -892,9 +1012,10 @@
         function enableControls(enabled) {
             searchInput.disabled = !enabled;
             resetBtn.disabled = !enabled;
+            toggleAllBtn.disabled = !enabled;
 
-            document.querySelectorAll('[data-header]').forEach(select => {
-                select.disabled = !enabled;
+            document.querySelectorAll('[data-header]').forEach(element => {
+                element.disabled = !enabled;
             });
 
             if (enabled) {
@@ -908,6 +1029,7 @@
         csvFileInput.addEventListener('change', handleCSVUpload);
         searchInput.addEventListener('input', handleSearch);
         resetBtn.addEventListener('click', resetFilters);
+        toggleAllBtn.addEventListener('click', toggleAllColumns);
 
         // Initialize
         enableControls(false);
